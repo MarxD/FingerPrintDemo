@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity
         public void onAuthenticationError(int errorCode, CharSequence errString)
         {
             super.onAuthenticationError(errorCode, errString);
-            Log.i("finger_touch", "error" + errString + "|" + errorCode + "|不可再验");
+            Log.i("finger_touch", "onAuthenticationError---" + errString + "|" + errorCode + "|不可再验");
             intent = new Intent(BROADCAST_CODE);
             intent.putExtra("successOrError", true);
             intent.putExtra("msg", errString);
@@ -102,9 +102,9 @@ public class MainActivity extends AppCompatActivity
         public void onAuthenticationHelp(int helpCode, CharSequence helpString)
         {
             super.onAuthenticationHelp(helpCode, helpString);
-            Log.i("finger_touch", "Help" + helpString + "|" + helpCode + "|其他原因验证失败，可再验证");
+            Log.i("finger_touch", "onAuthenticationHelp---" + helpString + "|" + helpCode + "|其他原因验证失败，可再验证");
             intent = new Intent(BROADCAST_CODE);
-            intent.putExtra("msg", "其他验证失败");
+            intent.putExtra("msg",helpString);
             sendBroadcast(intent);
         }
 
@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity
         public void onAuthenticationFailed()
         {
             super.onAuthenticationFailed();
-            Log.i("finger_touch", "faild" + "|非登录指纹，可再验证");
+            Log.i("finger_touch", "onAuthenticationFailed--" + "非登录指纹，可再验证");
             intent = new Intent(BROADCAST_CODE);
             intent.putExtra("msg", "验证失败，请重试");
             sendBroadcast(intent);
