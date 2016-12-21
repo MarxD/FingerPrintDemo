@@ -1,11 +1,9 @@
 package marx.jr.fingerprintdemo;
-
 import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SyncStatusObserver;
 import android.content.pm.PackageManager;
 import android.hardware.fingerprint.FingerprintManager;
 import android.support.v4.app.ActivityCompat;
@@ -15,10 +13,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TimePicker;
-import android.widget.Toast;
-
-import java.security.PrivateKey;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -29,6 +23,7 @@ public class MainActivity extends AppCompatActivity
     IntentFilter filter;
     private static String BROADCAST_CODE = "BROADCAST_CODE_DIALOG";
     Intent intent;
+    AlertDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -50,7 +45,7 @@ public class MainActivity extends AppCompatActivity
         registerReceiver(receiver, filter);
     }
 
-    AlertDialog dialog;
+
 
     private void fingerPrintAuthentication()
     {
@@ -135,14 +130,7 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
-    @Override
-    protected void onDestroy()
-    {
-        super.onDestroy();
-        if(dialog.isShowing())
-            dialog.dismiss();
-        unregisterReceiver(receiver);
-    }
+
 
     private BroadcastReceiver receiver = new BroadcastReceiver()
     {
@@ -151,11 +139,13 @@ public class MainActivity extends AppCompatActivity
         {
             String msg = intent.getStringExtra("msg");
             Boolean successOrError = intent.getBooleanExtra("successOrError", false);
+            Timer timer = new Timer();
+            TimerTask task;
             if (dialog != null)
                 dialog.setMessage(msg);
             if (successOrError)
             {
-                TimerTask task = new TimerTask()
+                 task = new TimerTask()
                 {
                     @Override
                     public void run()
@@ -173,11 +163,11 @@ public class MainActivity extends AppCompatActivity
                         });
                     }
                 };
-                Timer timer = new Timer();
+
                 timer.schedule(task, 1000);
             } else
             {
-                TimerTask task = new TimerTask()
+                 task = new TimerTask()
                 {
                     @Override
                     public void run()
@@ -193,7 +183,6 @@ public class MainActivity extends AppCompatActivity
 
                     }
                 };
-                Timer timer = new Timer();
                 timer.schedule(task, 1000);
 
             }
@@ -202,4 +191,12 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+    @Override
+    protected void onDestroy()
+    {
+        super.onDestroy();
+        if(dialog.isShowing())
+            dialog.dismiss();
+        unregisterReceiver(receiver);
+    }
 }
