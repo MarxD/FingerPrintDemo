@@ -141,8 +141,7 @@ public class MainActivity extends AppCompatActivity
             Boolean successOrError = intent.getBooleanExtra("successOrError", false);
             Timer timer = new Timer();
             TimerTask task;
-            if (dialog != null)
-                dialog.setMessage(msg);
+            dialog.setMessage(msg);
             if (successOrError)
             {
                 task = new TimerTask()
@@ -156,7 +155,7 @@ public class MainActivity extends AppCompatActivity
                             public void run()
                             {
                                 dialog.dismiss();
-                                
+
                             }
                         });
                     }
