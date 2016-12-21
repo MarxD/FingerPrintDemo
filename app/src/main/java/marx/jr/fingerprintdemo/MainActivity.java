@@ -1,4 +1,5 @@
 package marx.jr.fingerprintdemo;
+
 import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,6 +14,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -44,7 +46,6 @@ public class MainActivity extends AppCompatActivity
         });
         registerReceiver(receiver, filter);
     }
-
 
 
     private void fingerPrintAuthentication()
@@ -104,7 +105,7 @@ public class MainActivity extends AppCompatActivity
             super.onAuthenticationHelp(helpCode, helpString);
             Log.i("finger_touch", "onAuthenticationHelp---" + helpString + "|" + helpCode + "|其他原因验证失败，可再验证");
             intent = new Intent(BROADCAST_CODE);
-            intent.putExtra("msg",helpString);
+            intent.putExtra("msg", helpString);
             sendBroadcast(intent);
         }
 
@@ -131,7 +132,6 @@ public class MainActivity extends AppCompatActivity
     };
 
 
-
     private BroadcastReceiver receiver = new BroadcastReceiver()
     {
         @Override
@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity
                 dialog.setMessage(msg);
             if (successOrError)
             {
-                 task = new TimerTask()
+                task = new TimerTask()
                 {
                     @Override
                     public void run()
@@ -155,10 +155,8 @@ public class MainActivity extends AppCompatActivity
                             @Override
                             public void run()
                             {
-                                if (dialog != null && dialog.isShowing())
-                                {
-                                    dialog.dismiss();
-                                }
+                                dialog.dismiss();
+                                
                             }
                         });
                     }
@@ -167,7 +165,7 @@ public class MainActivity extends AppCompatActivity
                 timer.schedule(task, 1000);
             } else
             {
-                 task = new TimerTask()
+                task = new TimerTask()
                 {
                     @Override
                     public void run()
@@ -195,7 +193,7 @@ public class MainActivity extends AppCompatActivity
     protected void onDestroy()
     {
         super.onDestroy();
-        if(dialog.isShowing())
+        if (dialog.isShowing())
             dialog.dismiss();
         unregisterReceiver(receiver);
     }
