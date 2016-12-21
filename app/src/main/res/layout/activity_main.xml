@@ -12,7 +12,7 @@
     tools:context="marx.jr.fingerprintdemo.MainActivity">
 
     <Button
-        android:text="Touch♂Me"
+        android:text="Hit♂Me"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/Btn_Touch"
