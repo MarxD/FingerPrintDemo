@@ -33,7 +33,9 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+
         super.onCreate(savedInstanceState);
+        filter = new IntentFilter(BROADCAST_CODE);
         setContentView(R.layout.activity_main);
         btn_touch = (Button) findViewById(R.id.Btn_Touch);
         manager = getSystemService(FingerprintManager.class);
@@ -45,32 +47,44 @@ public class MainActivity extends AppCompatActivity
                 fingerPrintAuthentication();
             }
         });
-        intent = new Intent();
-        intent.setAction(BROADCAST_CODE);
-
+        registerReceiver(receiver, filter);
     }
 
     AlertDialog dialog;
 
     private void fingerPrintAuthentication()
     {
-        if (null == dialog)
+        dialog = new AlertDialog.Builder(this).setMessage("Touch♂Me").setCancelable(false).create();
+        if (dialog.isShowing())
+            dialog.dismiss();
+        dialog.show();
+        Thread t = new Thread(new Runnable()
         {
-            dialog = new AlertDialog.Builder(this).setMessage("Touch♂Me").setCancelable(false).create();
-            dialog.show();
-            filter = new IntentFilter(BROADCAST_CODE);
-            this.registerReceiver(receiver, filter);
-        }
+            @Override
+            public void run()
+            {
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED)
+                {
+                    intent = new Intent(BROADCAST_CODE);
+                    intent.putExtra("msg", "无指纹验证权限！");
+                    intent.putExtra("successOrError", true);
+                    sendBroadcast(intent);
+                    return;
+                }
+                if (manager.isHardwareDetected() && manager.hasEnrolledFingerprints())
+                {
+                    manager.authenticate(null, null, 0, callback, null);
+                } else
+                {
+                    intent = new Intent(BROADCAST_CODE);
+                    intent.putExtra("msg", "无指纹采集设备");
+                    intent.putExtra("successOrError", true);
+                    sendBroadcast(intent);
+                }
+            }
+        });
+        t.start();
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED)
-        {
-            Toast.makeText(this, "无权限或无硬件支持！", Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (manager.isHardwareDetected() && manager.hasEnrolledFingerprints())
-        {
-            manager.authenticate(null, null, 0, callback, null);
-        }
 
     }
 
@@ -83,16 +97,9 @@ public class MainActivity extends AppCompatActivity
         {
             super.onAuthenticationError(errorCode, errString);
             Log.i("finger_touch", "error" + errString + "|" + errorCode + "|不可再验");
+            intent = new Intent(BROADCAST_CODE);
             intent.putExtra("successOrError", true);
-            switch (errorCode)
-            {
-                case FingerprintManager.FINGERPRINT_ERROR_CANCELED:
-                    intent.putExtra("msg","传感器不可用！");
-                    break;
-                case FingerprintManager.FINGERPRINT_ERROR_LOCKOUT:
-                    intent.putExtra("msg", "验证失败次数过多！请30秒后再试！");
-                    break;
-            }
+            intent.putExtra("msg", errString);
             sendBroadcast(intent);
         }
 
@@ -101,6 +108,7 @@ public class MainActivity extends AppCompatActivity
         {
             super.onAuthenticationHelp(helpCode, helpString);
             Log.i("finger_touch", "Help" + helpString + "|" + helpCode + "|其他原因验证失败，可再验证");
+            intent = new Intent(BROADCAST_CODE);
             intent.putExtra("msg", "其他验证失败");
             sendBroadcast(intent);
         }
@@ -110,6 +118,7 @@ public class MainActivity extends AppCompatActivity
         {
             super.onAuthenticationSucceeded(result);
             Log.i("finger_touch", "Success!!!");
+            intent = new Intent(BROADCAST_CODE);
             intent.putExtra("msg", "验证成功");
             intent.putExtra("successOrError", true);
             sendBroadcast(intent);
@@ -120,10 +129,20 @@ public class MainActivity extends AppCompatActivity
         {
             super.onAuthenticationFailed();
             Log.i("finger_touch", "faild" + "|非登录指纹，可再验证");
-            intent.putExtra("msg", "验证失败！");
+            intent = new Intent(BROADCAST_CODE);
+            intent.putExtra("msg", "验证失败，请重试");
             sendBroadcast(intent);
         }
     };
+
+    @Override
+    protected void onDestroy()
+    {
+        super.onDestroy();
+        if(dialog.isShowing())
+            dialog.dismiss();
+        unregisterReceiver(receiver);
+    }
 
     private BroadcastReceiver receiver = new BroadcastReceiver()
     {
@@ -132,20 +151,53 @@ public class MainActivity extends AppCompatActivity
         {
             String msg = intent.getStringExtra("msg");
             Boolean successOrError = intent.getBooleanExtra("successOrError", false);
-
-            dialog.setMessage(msg);
-            TimerTask task = new TimerTask()
+            if (dialog != null)
+                dialog.setMessage(msg);
+            if (successOrError)
             {
-                @Override
-                public void run()
+                TimerTask task = new TimerTask()
                 {
-                    dialog.dismiss();
-                    dialog = null;
-                }
-            };
-            Timer timer = new Timer();
-            timer.schedule(task, 1000);
-            unregisterReceiver(receiver);
+                    @Override
+                    public void run()
+                    {
+                        runOnUiThread(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                if (dialog != null && dialog.isShowing())
+                                {
+                                    dialog.dismiss();
+                                }
+                            }
+                        });
+                    }
+                };
+                Timer timer = new Timer();
+                timer.schedule(task, 1000);
+            } else
+            {
+                TimerTask task = new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        runOnUiThread(new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                dialog.setMessage("Touch♂Me");
+                            }
+                        });
+
+                    }
+                };
+                Timer timer = new Timer();
+                timer.schedule(task, 1000);
+
+            }
+
 
         }
     };
