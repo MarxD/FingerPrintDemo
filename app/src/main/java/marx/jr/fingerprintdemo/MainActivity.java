@@ -215,7 +215,7 @@ public class MainActivity extends AppCompatActivity
     protected void onDestroy()
     {
         super.onDestroy();
-        if (dialog.isShowing())
+        if (dialog!=null&&dialog.isShowing())
             dialog.dismiss();
         unregisterReceiver(receiver);
     }
