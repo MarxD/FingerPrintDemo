@@ -3,10 +3,12 @@ package marx.jr.fingerprintdemo;
 import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.fingerprint.FingerprintManager;
+import android.os.CancellationSignal;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -14,19 +16,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity
 {
     Button btn_touch;
-    FingerprintManager manager;
     IntentFilter filter;
     private static String BROADCAST_CODE = "BROADCAST_CODE_DIALOG";
     Intent intent;
     AlertDialog dialog;
-
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -35,7 +34,6 @@ public class MainActivity extends AppCompatActivity
         filter = new IntentFilter(BROADCAST_CODE);
         setContentView(R.layout.activity_main);
         btn_touch = (Button) findViewById(R.id.Btn_Touch);
-        manager = getSystemService(FingerprintManager.class);
         btn_touch.setOnClickListener(new View.OnClickListener()
         {
             @Override
@@ -50,10 +48,29 @@ public class MainActivity extends AppCompatActivity
 
     private void fingerPrintAuthentication()
     {
-        dialog = new AlertDialog.Builder(this).setMessage("Touch♂Me").setCancelable(false).create();
+
+        if(!MApplication.hasFingerPrintHardware())
+        {
+            dialog = new AlertDialog.Builder(this).setMessage("无指纹设备").setCancelable(true).create();
+            dialog.show();
+            return;
+        }
+
+        final FingerprintManager manager = getSystemService(FingerprintManager.class);
+        final CancellationSignal mCancellationSignal;
+        mCancellationSignal = new CancellationSignal();
+        dialog = new AlertDialog.Builder(this).setMessage("Touch♂Me").setCancelable(true).create();
         if (dialog.isShowing())
             dialog.dismiss();
         dialog.show();
+        dialog.setOnCancelListener(new DialogInterface.OnCancelListener()
+        {
+            @Override
+            public void onCancel(DialogInterface dialog)
+            {
+                mCancellationSignal.cancel();
+            }
+        });
         Thread t = new Thread(new Runnable()
         {
             @Override
@@ -69,7 +86,7 @@ public class MainActivity extends AppCompatActivity
                 }
                 if (manager.isHardwareDetected() && manager.hasEnrolledFingerprints())
                 {
-                    manager.authenticate(null, null, 0, callback, null);
+                    manager.authenticate(null, mCancellationSignal, 0, getCallback(), null);
                 } else
                 {
                     intent = new Intent(BROADCAST_CODE);
@@ -84,52 +101,58 @@ public class MainActivity extends AppCompatActivity
 
     }
 
-
-    private FingerprintManager.AuthenticationCallback callback = new FingerprintManager.AuthenticationCallback()
+    private  FingerprintManager.AuthenticationCallback getCallback()
     {
-
-        @Override
-        public void onAuthenticationError(int errorCode, CharSequence errString)
+        FingerprintManager.AuthenticationCallback callback = new FingerprintManager.AuthenticationCallback()
         {
-            super.onAuthenticationError(errorCode, errString);
-            Log.i("finger_touch", "onAuthenticationError---" + errString + "|" + errorCode + "|不可再验");
-            intent = new Intent(BROADCAST_CODE);
-            intent.putExtra("successOrError", true);
-            intent.putExtra("msg", errString);
-            sendBroadcast(intent);
-        }
 
-        @Override
-        public void onAuthenticationHelp(int helpCode, CharSequence helpString)
-        {
-            super.onAuthenticationHelp(helpCode, helpString);
-            Log.i("finger_touch", "onAuthenticationHelp---" + helpString + "|" + helpCode + "|其他原因验证失败，可再验证");
-            intent = new Intent(BROADCAST_CODE);
-            intent.putExtra("msg", helpString);
-            sendBroadcast(intent);
-        }
+            @Override
+            public void onAuthenticationError(int errorCode, CharSequence errString)
+            {
+                super.onAuthenticationError(errorCode, errString);
+                Log.i("finger_touch", "onAuthenticationError---" + errString + "|" + errorCode + "|不可再验");
+                intent = new Intent(BROADCAST_CODE);
+                intent.putExtra("successOrError", true);
+                intent.putExtra("msg", errString);
+                sendBroadcast(intent);
+            }
 
-        @Override
-        public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result)
-        {
-            super.onAuthenticationSucceeded(result);
-            Log.i("finger_touch", "Success!!!");
-            intent = new Intent(BROADCAST_CODE);
-            intent.putExtra("msg", "验证成功");
-            intent.putExtra("successOrError", true);
-            sendBroadcast(intent);
-        }
+            @Override
+            public void onAuthenticationHelp(int helpCode, CharSequence helpString)
+            {
+                super.onAuthenticationHelp(helpCode, helpString);
+                Log.i("finger_touch", "onAuthenticationHelp---" + helpString + "|" + helpCode + "|其他原因验证失败，可再验证");
+                intent = new Intent(BROADCAST_CODE);
+                intent.putExtra("msg", helpString);
+                sendBroadcast(intent);
+            }
 
-        @Override
-        public void onAuthenticationFailed()
-        {
-            super.onAuthenticationFailed();
-            Log.i("finger_touch", "onAuthenticationFailed--" + "非登录指纹，可再验证");
-            intent = new Intent(BROADCAST_CODE);
-            intent.putExtra("msg", "验证失败，请重试");
-            sendBroadcast(intent);
-        }
-    };
+            @Override
+            public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result)
+            {
+                super.onAuthenticationSucceeded(result);
+                Log.i("finger_touch", "Success!!!");
+                intent = new Intent(BROADCAST_CODE);
+                intent.putExtra("msg", "验证成功");
+                intent.putExtra("successOrError", true);
+                sendBroadcast(intent);
+            }
+
+            @Override
+            public void onAuthenticationFailed()
+            {
+                super.onAuthenticationFailed();
+                Log.i("finger_touch", "onAuthenticationFailed--" + "非登录指纹，可再验证");
+                intent = new Intent(BROADCAST_CODE);
+                intent.putExtra("msg", "验证失败，请重试");
+                sendBroadcast(intent);
+            }
+        };
+
+        return  callback;
+    }
+
+
 
 
     private BroadcastReceiver receiver = new BroadcastReceiver()
